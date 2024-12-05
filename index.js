@@ -13,7 +13,6 @@ app.use(bodyParser.json());
 
 app.use(express.static('public'));
 
-// MongoDB URL schema
 const urlSchema = new mongoose.Schema({
     original_url: String,
     short_url: String
@@ -21,40 +20,37 @@ const urlSchema = new mongoose.Schema({
 
 const Url = mongoose.model('Url', urlSchema);
 
-// MongoDB connection
 mongoose.connect(process.env.MONGO_URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 }).then(() => console.log("Connected to MongoDB"))
   .catch(err => console.error("Database connection error:", err));
 
-// Route to serve the homepage
+
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/views/index.html');
 });
 
-// Generate a unique short URL
+
 const generateShortUrl = () => {
-    return Math.floor(Math.random() * 10000); // You could use UUID for more uniqueness
+    return Math.floor(Math.random() * 10000);
 };
 
-// Handle URL shortening request
 app.post('/api/shorturl', async (req, res) => {
     try {
         const url = req.body.url;
         const domain = new URL(url).hostname;
 
-        // Check if the domain is valid
+
         dns.lookup(domain, async (err, addresses, family) => {
             if (err) {
                 return res.json({ error: 'Invalid URL' });
             }
 
-            // Generate a unique short URL and check for collisions
             let shortUrl = generateShortUrl();
             let existingUrl = await Url.findOne({ short_url: shortUrl });
             while (existingUrl) {
-                shortUrl = generateShortUrl(); // Regenerate if collision occurs
+                shortUrl = generateShortUrl(); 
                 existingUrl = await Url.findOne({ short_url: shortUrl });
             }
 
@@ -73,7 +69,7 @@ app.post('/api/shorturl', async (req, res) => {
     }
 });
 
-// Redirect short URL to original URL
+
 app.get('/api/shorturl/:short_url', async (req, res) => {
     try {
         const short_url = req.params.short_url;
@@ -89,5 +85,4 @@ app.get('/api/shorturl/:short_url', async (req, res) => {
     }
 });
 
-// Start server
 app.listen(3000, () => console.log('Server is listening on port 3000'));
